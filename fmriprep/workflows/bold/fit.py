@@ -27,7 +27,7 @@ import bids
 import nibabel as nb
 from nipype.interfaces import utility as niu
 from nipype.pipeline import engine as pe
-from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf
+from niworkflows.func.util import init_enhance_and_skullstrip_bold_wf, init_skullstrip_bold_wf
 from niworkflows.interfaces.header import ValidateImage
 from niworkflows.interfaces.nitransforms import ConcatenateXFMs
 from niworkflows.interfaces.utility import KeySelect
@@ -554,6 +554,8 @@ def init_bold_fit_wf(
             unwarp_wf.inputs.inputnode.metadata = layout.get_metadata(bold_file)
 
             # fmt:off
+            skullstrip_bold_wf = init_skullstrip_bold_wf()
+
             workflow.connect([
                 (inputnode, fmap_select, [
                     ('fmap_ref', 'fmap_ref'),
@@ -578,8 +580,11 @@ def init_bold_fit_wf(
                 (unwarp_wf, ds_coreg_boldref_wf, [
                     ('outputnode.corrected', 'inputnode.boldref'),
                 ]),
-                (unwarp_wf, ds_boldmask_wf, [
-                    ('outputnode.corrected_mask', 'inputnode.boldmask'),
+                (unwarp_wf, skullstrip_bold_wf, [
+                    ('outputnode.corrected', 'inputnode.in_file'),
+                ]),
+                (skullstrip_bold_wf, ds_boldmask_wf, [
+                    ('outputnode.mask_file', 'inputnode.boldmask'),
                 ]),
                 (fmap_select, func_fit_reports_wf, [('fmap_ref', 'inputnode.fmap_ref')]),
                 (fmap_select, summary, [('sdc_method', 'distortion_correction')]),
